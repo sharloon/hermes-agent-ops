@@ -50,7 +50,7 @@ from hermes_cli.config import (
 from gateway.status import get_running_pid, read_runtime_status
 
 try:
-    from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+    from fastapi import FastAPI, File, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
     from fastapi.staticfiles import StaticFiles
@@ -2162,6 +2162,72 @@ async def toggle_skill(body: SkillToggle):
         disabled.add(body.name)
     save_disabled_skills(config, disabled)
     return {"ok": True, "name": body.name, "enabled": body.enabled}
+
+
+class SkillUploadResponse:
+    ok: bool
+    name: str
+    path: str
+
+
+@app.post("/api/skills/upload")
+async def upload_skill(file: UploadFile = File(...)):
+    """Upload a skill ZIP package to ~/.hermes/skills/."""
+    import zipfile
+    import tempfile
+    import shutil
+    import io
+    from pathlib import Path
+    from hermes_constants import get_hermes_home
+
+    # Validate file type
+    if not file.filename or not file.filename.endswith(".zip"):
+        raise HTTPException(status_code=400, detail="File must be a .zip archive")
+
+    hermes_home = get_hermes_home()
+    skills_dir = hermes_home / "skills"
+    skills_dir.mkdir(parents=True, exist_ok=True)
+
+    # Extract skill name from filename (remove .zip extension)
+    skill_name = file.filename[:-4]
+    if not skill_name:
+        raise HTTPException(status_code=400, detail="Invalid skill name")
+
+    skill_path = skills_dir / skill_name
+
+    # Read uploaded file
+    content = await file.read()
+
+    # Extract to temp dir first, then validate and move
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+
+        try:
+            with zipfile.ZipFile(io.BytesIO(content), "r") as zf:
+                zf.extractall(tmp_path)
+        except zipfile.BadZipFile:
+            raise HTTPException(status_code=400, detail="Invalid ZIP file")
+
+        # Validate: must contain SKILL.md
+        skill_md = None
+        for p in tmp_path.rglob("SKILL.md"):
+            skill_md = p
+            break
+
+        if not skill_md:
+            raise HTTPException(status_code=400, detail="ZIP must contain a SKILL.md file")
+
+        # Determine the skill root directory (directory containing SKILL.md)
+        skill_root = skill_md.parent
+
+        # Remove existing skill if present
+        if skill_path.exists():
+            shutil.rmtree(skill_path)
+
+        # Move validated skill to destination
+        shutil.move(str(skill_root), str(skill_path))
+
+    return {"ok": True, "name": skill_name, "path": str(skill_path)}
 
 
 @app.get("/api/tools/toolsets")

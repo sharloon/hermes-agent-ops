@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, useMemo } from "react";
+import { useEffect, useLayoutEffect, useState, useMemo, useRef } from "react";
 import {
   Package,
   Search,
@@ -14,6 +14,7 @@ import {
   Code,
   Zap,
   Filter,
+  Upload,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { SkillInfo, ToolsetInfo } from "@/lib/api";
@@ -97,9 +98,20 @@ export default function SkillsPage() {
   const [view, setView] = useState<"skills" | "toolsets">("skills");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [togglingSkills, setTogglingSkills] = useState<Set<string>>(new Set());
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast, showToast } = useToast();
   const { t } = useI18n();
   const { setAfterTitle, setEnd } = usePageHeader();
+
+  const reloadSkills = async () => {
+    try {
+      const s = await api.getSkills();
+      setSkills(s);
+    } catch {
+      showToast(t.common.loading, "error");
+    }
+  };
 
   useEffect(() => {
     Promise.all([api.getSkills(), api.getToolsets()])
@@ -110,6 +122,27 @@ export default function SkillsPage() {
       .catch(() => showToast(t.common.loading, "error"))
       .finally(() => setLoading(false));
   }, []);
+
+  /* ---- Upload skill ---- */
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const result = await api.uploadSkill(file);
+      showToast(`技能 ${result.name} 上传成功`, "success");
+      await reloadSkills();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "上传失败", "error");
+    } finally {
+      setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   /* ---- Toggle skill ---- */
   const handleToggleSkill = async (skill: SkillInfo) => {
@@ -263,6 +296,35 @@ export default function SkillsPage() {
                 <span className="font-mondwest text-[0.65rem] tracking-[0.12em] uppercase text-muted-foreground">
                   {t.skills.filters}
                 </span>
+              </div>
+
+              {/* Upload button */}
+              <div className="p-2 border-b border-border">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".zip"
+                  onChange={handleUpload}
+                  className="hidden"
+                  disabled={uploading}
+                />
+                <Button
+                  ghost
+                  className={cn(
+                    "w-full flex items-center gap-2 px-3 py-1.5",
+                    "text-xs text-white/60 hover:text-white hover:bg-white/5",
+                    uploading && "opacity-50",
+                  )}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <Spinner className="h-3.5 w-3.5" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  <span>{uploading ? "上传中..." : "上传技能"}</span>
+                </Button>
               </div>
 
               <div className="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-x-visible scrollbar-none p-2">

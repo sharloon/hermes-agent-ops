@@ -130,6 +130,21 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, enabled }),
     }),
+  uploadSkill: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = window.__HERMES_SESSION_TOKEN__;
+    const res = await fetch("/api/skills/upload", {
+      method: "POST",
+      headers: token ? { "X-Hermes-Session-Token": token } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Upload failed" }));
+      throw new Error(err.detail || "Upload failed");
+    }
+    return res.json() as Promise<{ ok: boolean; name: string; path: string }>;
+  },
   getToolsets: () => fetchJSON<ToolsetInfo[]>("/api/tools/toolsets"),
 
   // Session search (FTS5)

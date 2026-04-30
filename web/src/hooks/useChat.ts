@@ -24,12 +24,58 @@ export type SessionInfo = {
   model?: string;
 };
 
+export type UseChatOptions = {
+  autoResume?: boolean;  // 自动恢复最近对话
+};
+
 let _msgCounter = 0;
 function nextMsgId() {
   return `msg-${++_msgCounter}`;
 }
 
-export function useChat() {
+// Convert history from session.resume to ChatMessage format
+function historyToMessages(history: Array<{role: string; text?: string; name?: string; context?: string}>): ChatMessage[] {
+  const result: ChatMessage[] = [];
+  let currentAssistant: ChatMessage | null = null;
+
+  for (const h of history) {
+    if (h.role === "user" && h.text) {
+      // Close any pending assistant message
+      if (currentAssistant) {
+        result.push(currentAssistant);
+        currentAssistant = null;
+      }
+      result.push({ id: nextMsgId(), role: "user", text: h.text, streaming: false, toolCalls: [] });
+    } else if (h.role === "assistant" && h.text) {
+      // Start or continue assistant message
+      if (!currentAssistant) {
+        currentAssistant = { id: nextMsgId(), role: "assistant", text: "", streaming: false, toolCalls: [] };
+      }
+      currentAssistant.text += h.text;
+    } else if (h.role === "tool") {
+      // Add tool call to current assistant message
+      if (!currentAssistant) {
+        currentAssistant = { id: nextMsgId(), role: "assistant", text: "", streaming: false, toolCalls: [] };
+      }
+      currentAssistant.toolCalls.push({
+        tool_id: nextMsgId(),
+        name: h.name || "tool",
+        context: h.context,
+        status: "done",
+      });
+    }
+  }
+
+  // Close final assistant message
+  if (currentAssistant) {
+    result.push(currentAssistant);
+  }
+
+  return result;
+}
+
+export function useChat(options: UseChatOptions = {}) {
+  const { autoResume = true } = options;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -172,14 +218,38 @@ export function useChat() {
         ),
       ]);
 
-      const result = await gw.request<{ session_id: string }>("session.create", {});
-      setSessionId(result.session_id);
+      // Try to resume recent session if autoResume is enabled
+      if (autoResume) {
+        try {
+          const recent = await gw.request<{ session_id: string | null; title?: string }>("session.most_recent", {});
+          if (recent.session_id) {
+            const resumed = await gw.request<{ session_id: string; messages: Array<{role: string; text?: string; name?: string; context?: string}> }>(
+              "session.resume",
+              { session_id: recent.session_id }
+            );
+            setSessionId(resumed.session_id);
+            setMessages(historyToMessages(resumed.messages || []));
+            // Don't create a new session, use the resumed one
+          } else {
+            // No recent session, create new
+            const result = await gw.request<{ session_id: string }>("session.create", {});
+            setSessionId(result.session_id);
+          }
+        } catch {
+          // Resume failed, create new session
+          const result = await gw.request<{ session_id: string }>("session.create", {});
+          setSessionId(result.session_id);
+        }
+      } else {
+        const result = await gw.request<{ session_id: string }>("session.create", {});
+        setSessionId(result.session_id);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Connection failed");
     } finally {
       unsubClose();
     }
-  }, []);
+  }, [autoResume]);
 
   const sendMessage = useCallback(
     async (text: string) => {

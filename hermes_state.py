@@ -477,7 +477,15 @@ class SessionDB:
                 # Recreate virtual tables + triggers with the new inline-mode
                 # schema that indexes content || tool_name || tool_calls.
                 cursor.executescript(FTS_SQL)
-                cursor.executescript(FTS_TRIGRAM_SQL)
+                try:
+                    cursor.executescript(FTS_TRIGRAM_SQL)
+                except sqlite3.OperationalError as e:
+                    if "no such tokenizer" in str(e):
+                        logger.warning(
+                            "SQLite trigram tokenizer not available - substring search disabled."
+                        )
+                    else:
+                        raise
                 # Backfill both indexes from every existing messages row.
                 cursor.execute(
                     "INSERT INTO messages_fts(rowid, content) "

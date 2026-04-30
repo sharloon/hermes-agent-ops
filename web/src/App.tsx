@@ -426,35 +426,25 @@ export default function App() {
             id="app-sidebar"
             aria-label={t.app.navigation}
             className={cn(
-              "fixed top-0 left-0 z-50 flex h-dvh max-h-dvh w-64 min-h-0 flex-col",
-              "border-r border-current/20",
-              "bg-background-base/95 backdrop-blur-sm",
+              "fixed top-0 left-0 z-50 flex h-dvh max-h-dvh w-56 min-h-0 flex-col",
+              "border-r border-white/10",
+              "bg-[#0a0a0a]",
               "transition-transform duration-200 ease-out",
               mobileOpen ? "translate-x-0" : "-translate-x-full",
               "lg:sticky lg:top-0 lg:translate-x-0 lg:shrink-0",
             )}
-            style={{
-              background: "var(--component-sidebar-background)",
-              clipPath: "var(--component-sidebar-clip-path)",
-              borderImage: "var(--component-sidebar-border-image)",
-            }}
           >
             <div
               className={cn(
-                "flex h-14 shrink-0 items-center justify-between gap-2",
-                "border-b border-current/20",
+                "flex h-12 shrink-0 items-center justify-between gap-2 px-4",
+                "border-b border-white/10",
               )}
             >
               <div className="flex items-center gap-2">
                 <PluginSlot name="header-left" />
 
-                <Typography
-                  className="font-bold text-[1.125rem] leading-[0.95] tracking-[0.0525rem] text-midground"
-                  style={{ mixBlendMode: "plus-lighter" }}
-                >
-                  Hermes
-                  <br />
-                  Agent
+                <Typography className="text-sm font-medium tracking-wide text-white/80">
+                  运维通
                 </Typography>
               </div>
 
@@ -463,14 +453,14 @@ export default function App() {
                 size="icon"
                 onClick={closeMobile}
                 aria-label={t.app.closeNavigation}
-                className="lg:hidden text-midground/70 hover:text-midground"
+                className="lg:hidden text-white/50 hover:text-white"
               >
                 <X />
               </Button>
             </div>
 
             <nav
-              className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden border-t border-current/10 py-2"
+              className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden py-1"
               aria-label={t.app.navigation}
             >
               <ul className="flex flex-col">
@@ -486,39 +476,20 @@ export default function App() {
                         onClick={closeMobile}
                         className={({ isActive }) =>
                           cn(
-                            "group relative flex items-center gap-3",
-                            "px-5 py-2.5",
-                            "font-mondwest text-[0.8rem] tracking-[0.12em]",
-                            "whitespace-nowrap transition-colors cursor-pointer",
-                            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-midground",
+                            "flex items-center gap-2.5",
+                            "px-4 py-2",
+                            "text-sm whitespace-nowrap transition-colors cursor-pointer",
+                            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30",
                             isActive
-                              ? "text-midground"
-                              : "opacity-60 hover:opacity-100",
+                              ? "text-white bg-white/5"
+                              : "text-white/60 hover:text-white hover:bg-white/5",
                           )
                         }
-                        style={{
-                          clipPath: "var(--component-tab-clip-path)",
-                        }}
                       >
-                        {({ isActive }) => (
-                          <>
-                            <Icon className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{navLabel}</span>
-
-                            <span
-                              aria-hidden
-                              className="absolute inset-y-0.5 left-1.5 right-1.5 bg-midground opacity-0 pointer-events-none transition-opacity duration-200 group-hover:opacity-5"
-                            />
-
-                            {isActive && (
-                              <span
-                                aria-hidden
-                                className="absolute left-0 top-0 bottom-0 w-px bg-midground"
-                                style={{ mixBlendMode: "plus-lighter" }}
-                              />
-                            )}
-                          </>
-                        )}
+                        <>
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{navLabel}</span>
+                        </>
                       </NavLink>
                     </li>
                   );
@@ -644,19 +615,8 @@ function SidebarSystemActions({ onNavigate }: { onNavigate: () => void }) {
   };
 
   return (
-    <div
-      className={cn(
-        "shrink-0 flex flex-col",
-        "border-t border-current/10",
-        "py-1",
-      )}
-    >
-      <span
-        className={cn(
-          "px-5 pt-0.5 pb-0.5",
-          "font-mondwest text-[0.6rem] tracking-[0.15em] uppercase opacity-30",
-        )}
-      >
+    <div className="shrink-0 flex flex-col border-t border-white/10 py-1">
+      <span className="px-4 py-1 text-xs text-white/40 uppercase tracking-wide">
         {t.app.system}
       </span>
 
@@ -679,42 +639,29 @@ function SidebarSystemActions({ onNavigate }: { onNavigate: () => void }) {
                 aria-busy={busy}
                 active={busy}
                 className={cn(
-                  "gap-3 px-5 py-1.5 whitespace-nowrap",
-                  "font-mondwest text-[0.75rem] tracking-[0.1em]",
-                  "transition-opacity",
+                  "flex items-center gap-2.5 px-4 py-1.5",
+                  "text-sm whitespace-nowrap cursor-pointer",
+                  "transition-colors",
                   busy
-                    ? "text-midground opacity-100"
-                    : "opacity-60 hover:opacity-100",
+                    ? "text-white bg-white/5"
+                    : "text-white/60 hover:text-white hover:bg-white/5",
                   "disabled:opacity-30",
                 )}
               >
                 {isPending ? (
-                  <Spinner className="shrink-0 text-[0.875rem]" />
+                  <Spinner className="shrink-0 text-sm" />
                 ) : isActionRunning && spin ? (
-                  <Spinner className="shrink-0 text-[0.875rem]" />
+                  <Spinner className="shrink-0 text-sm" />
                 ) : (
                   <Icon
                     className={cn(
-                      "h-3.5 w-3.5 shrink-0",
+                      "h-4 w-4 shrink-0",
                       isActionRunning && !spin && "animate-pulse",
                     )}
                   />
                 )}
 
                 <span className="truncate">{displayLabel}</span>
-
-                <span
-                  aria-hidden
-                  className="absolute inset-y-0.5 left-1.5 right-1.5 bg-midground opacity-0 pointer-events-none transition-opacity duration-200 group-hover:opacity-5"
-                />
-
-                {busy && (
-                  <span
-                    aria-hidden
-                    className="absolute left-0 top-0 bottom-0 w-px bg-midground"
-                    style={{ mixBlendMode: "plus-lighter" }}
-                  />
-                )}
               </ListItem>
             </li>
           );

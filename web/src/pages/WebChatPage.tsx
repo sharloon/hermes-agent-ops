@@ -12,13 +12,13 @@ import {
   Plus,
   Send,
   Square,
-  User,
   Wrench,
   AlertCircle,
   Wifi,
   WifiOff,
+  Check,
 } from "lucide-react";
-import { Button, Spinner } from "@nous-research/ui";
+import { Button } from "@nous-research/ui";
 import { cn } from "@/lib/utils";
 import { Markdown } from "@/components/Markdown";
 import { useChat, type ChatMessage, type ToolCallItem } from "@/hooks/useChat";
@@ -87,18 +87,13 @@ export default function WebChatPage() {
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {/* Header */}
-      <div
-        className={cn(
-          "flex shrink-0 items-center justify-between gap-3",
-          "border-b border-current/20 px-4 py-2",
-        )}
-      >
-        <div className="flex min-w-0 items-center gap-2">
+    <div className="flex min-h-0 flex-1 flex-col bg-[#0a0a0a]">
+      {/* Header - minimal */}
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-2">
+        <div className="flex min-w-0 items-center gap-3">
           <ConnectionBadge state={connectionState} />
           {sessionInfo.model && (
-            <span className="truncate font-mono text-[0.7rem] tracking-widest opacity-50 uppercase">
+            <span className="truncate text-xs text-white/50">
               {sessionInfo.model}
             </span>
           )}
@@ -108,8 +103,8 @@ export default function WebChatPage() {
           ghost
           size="icon"
           onClick={newSession}
-          title="New conversation"
-          className="shrink-0 opacity-60 hover:opacity-100"
+          title="新对话"
+          className="shrink-0 text-white/50 hover:text-white hover:bg-white/5"
         >
           <Plus className="h-4 w-4" />
         </Button>
@@ -125,14 +120,14 @@ export default function WebChatPage() {
           <EmptyState isConnected={isConnected} connectionState={connectionState} />
         )}
 
-        <div className="mx-auto flex max-w-3xl flex-col gap-4">
+        <div className="mx-auto flex max-w-3xl flex-col gap-3">
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
           ))}
 
-          {/* Status / thinking indicator */}
+          {/* Status indicator */}
           {isStreaming && statusText && (
-            <div className="flex items-center gap-2 pl-10 text-xs opacity-50">
+            <div className="flex items-center gap-2 px-3 text-xs text-white/40">
               <Loader2 className="h-3 w-3 animate-spin" />
               <span>{statusText}</span>
             </div>
@@ -146,45 +141,44 @@ export default function WebChatPage() {
             onClick={scrollToBottom}
             className={cn(
               "absolute bottom-4 right-4 z-10",
-              "flex h-8 w-8 items-center justify-center",
-              "rounded-full border border-current/20 bg-background-base/90 backdrop-blur-sm",
-              "opacity-80 transition-opacity hover:opacity-100",
+              "flex h-7 w-7 items-center justify-center",
+              "rounded-full bg-white/10 hover:bg-white/20 transition-colors",
             )}
           >
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-4 w-4 text-white/60" />
           </button>
         )}
       </div>
 
       {/* Error banner */}
       {error && (
-        <div className="flex shrink-0 items-center gap-2 border-t border-error/30 bg-error/10 px-4 py-2 text-xs text-error">
+        <div className="flex shrink-0 items-center gap-2 border-t border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-400">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           <span className="min-w-0 truncate">{error}</span>
           <button
             onClick={newSession}
             className="ml-auto shrink-0 underline underline-offset-2 opacity-80 hover:opacity-100"
           >
-            Reconnect
+            重连
           </button>
         </div>
       )}
 
-      {/* Input */}
-      <div className="shrink-0 border-t border-current/20 px-4 py-3">
+      {/* Input - fixed bottom */}
+      <div className="shrink-0 border-t border-white/10 px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <textarea
             ref={textareaRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isConnected ? "Type a message… (Enter to send, Shift+Enter for newline)" : "Connecting…"}
+            placeholder={isConnected ? "输入消息..." : "连接中..."}
             disabled={!isConnected}
             rows={1}
             className={cn(
-              "min-h-[40px] flex-1 resize-none rounded-none border border-current/30",
-              "bg-transparent px-3 py-2 font-mono text-sm",
-              "placeholder:opacity-30 focus:border-current/60 focus:outline-none",
+              "min-h-[36px] flex-1 resize-none rounded-lg border border-white/10",
+              "bg-white/5 px-3 py-2 text-sm text-white",
+              "placeholder:text-white/30 focus:border-white/20 focus:outline-none",
               "transition-colors disabled:opacity-40",
             )}
           />
@@ -193,8 +187,8 @@ export default function WebChatPage() {
               ghost
               size="icon"
               onClick={() => void interrupt()}
-              title="Stop generation"
-              className="shrink-0"
+              title="停止"
+              className="shrink-0 text-white/60 hover:text-white hover:bg-white/5"
             >
               <Square className="h-4 w-4" />
             </Button>
@@ -204,15 +198,20 @@ export default function WebChatPage() {
               size="icon"
               onClick={() => void submit()}
               disabled={!canSend}
-              title="Send message"
-              className="shrink-0 disabled:opacity-30"
+              title="发送"
+              className={cn(
+                "shrink-0",
+                canSend
+                  ? "text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
+                  : "text-white/30",
+              )}
             >
               <Send className="h-4 w-4" />
             </Button>
           )}
         </div>
-        <p className="mx-auto mt-1 max-w-3xl text-[0.65rem] opacity-25">
-          Shift+Enter for newline · /commands supported
+        <p className="mx-auto mt-1.5 max-w-3xl text-xs text-white/30">
+          Shift+Enter 换行
         </p>
       </div>
     </div>
@@ -220,64 +219,38 @@ export default function WebChatPage() {
 }
 
 /* ------------------------------------------------------------------ */
-/* MessageBubble                                                        */
+/* MessageBubble - simplified business style                          */
 /* ------------------------------------------------------------------ */
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
 
   return (
-    <div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
-      {/* Avatar */}
-      <div
-        className={cn(
-          "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center",
-          "border border-current/20",
-          isUser ? "bg-midground/10" : "bg-midground/5",
-        )}
-      >
-        {isUser ? (
-          <User className="h-3.5 w-3.5" />
-        ) : (
-          <Bot className="h-3.5 w-3.5" />
-        )}
-      </div>
-
-      {/* Content */}
-      <div
-        className={cn(
-          "flex min-w-0 max-w-[85%] flex-col gap-2",
-          isUser ? "items-end" : "items-start",
-        )}
-      >
-        {/* Tool calls */}
+    <div className={cn("flex gap-0", isUser ? "justify-end" : "justify-start")}>
+      <div className={cn("max-w-[85%]", isUser ? "order-1" : "order-2")}>
+        {/* Tool calls - inline style */}
         {message.toolCalls.length > 0 && (
-          <div className="flex w-full flex-col gap-1">
+          <div className="mb-2 flex flex-col gap-1">
             {message.toolCalls.map((tc) => (
-              <ToolCallCard key={tc.tool_id} toolCall={tc} />
+              <ToolCallInline key={tc.tool_id} toolCall={tc} />
             ))}
           </div>
         )}
 
-        {/* Bubble */}
+        {/* Message content */}
         {(message.text || message.streaming) && (
           <div
             className={cn(
-              "min-w-0 border border-current/20 px-3 py-2.5",
+              "px-3 py-2.5 rounded-lg",
               isUser
-                ? "bg-midground/10 font-mono text-sm"
-                : "bg-transparent",
+                ? "bg-white/10 text-white"
+                : "bg-[#141414] text-white/90",
             )}
           >
             {isUser ? (
-              <pre className="whitespace-pre-wrap font-mono text-sm">
-                {message.text}
-              </pre>
+              <p className="whitespace-pre-wrap text-sm">{message.text}</p>
             ) : (
-              <Markdown
-                content={message.text}
-                streaming={message.streaming}
-              />
+              <Markdown content={message.text} streaming={message.streaming} />
             )}
           </div>
         )}
@@ -287,37 +260,33 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* ToolCallCard                                                         */
+/* ToolCallInline - compact inline display                            */
 /* ------------------------------------------------------------------ */
 
-function ToolCallCard({ toolCall }: { toolCall: ToolCallItem }) {
+function ToolCallInline({ toolCall }: { toolCall: ToolCallItem }) {
   const [expanded, setExpanded] = useState(false);
+  const isRunning = toolCall.status === "running";
+  const isDone = toolCall.status === "done";
   const hasDetail = !!(toolCall.context || toolCall.preview || toolCall.summary);
 
   return (
-    <div
-      className={cn(
-        "border border-current/20 px-3 py-1.5 text-xs",
-        toolCall.status === "running" && "border-warning/40 bg-warning/5",
-        toolCall.status === "done" && "border-current/10 bg-transparent opacity-60",
-      )}
-    >
+    <div className="text-xs">
       <button
-        className="flex w-full items-center gap-2 text-left"
+        className={cn(
+          "flex items-center gap-2 py-1",
+          hasDetail && "cursor-pointer hover:bg-white/5 px-2 rounded",
+        )}
         onClick={() => hasDetail && setExpanded((v) => !v)}
         disabled={!hasDetail}
       >
-        <Wrench className="h-3 w-3 shrink-0 opacity-60" />
-        <span className="flex-1 truncate font-mono tracking-wide">
-          {toolCall.name}
-        </span>
-        {toolCall.status === "running" && (
-          <Spinner className="shrink-0 text-[0.75rem]" />
-        )}
+        <Wrench className="h-3 w-3 shrink-0 text-white/40" />
+        <span className="text-white/60">{toolCall.name}</span>
+        {isRunning && <Loader2 className="h-3 w-3 animate-spin text-yellow-400" />}
+        {isDone && <Check className="h-3 w-3 text-green-400" />}
         {hasDetail && (
           <ChevronDown
             className={cn(
-              "h-3 w-3 shrink-0 opacity-40 transition-transform",
+              "h-3 w-3 shrink-0 text-white/30 transition-transform",
               expanded && "rotate-180",
             )}
           />
@@ -325,12 +294,12 @@ function ToolCallCard({ toolCall }: { toolCall: ToolCallItem }) {
       </button>
 
       {expanded && (
-        <div className="mt-1.5 border-t border-current/10 pt-1.5">
+        <div className="mt-1 px-4 py-1.5 bg-white/5 rounded text-white/50">
           {toolCall.context && (
-            <p className="mb-1 opacity-60">{toolCall.context}</p>
+            <p className="mb-1 text-white/40">{toolCall.context}</p>
           )}
           {(toolCall.preview || toolCall.summary) && (
-            <pre className="max-h-32 overflow-y-auto whitespace-pre-wrap font-mono text-[0.65rem] opacity-70">
+            <pre className="max-h-24 overflow-y-auto whitespace-pre-wrap font-mono text-[0.7rem]">
               {toolCall.summary ?? toolCall.preview}
             </pre>
           )}
@@ -341,36 +310,36 @@ function ToolCallCard({ toolCall }: { toolCall: ToolCallItem }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* ConnectionBadge                                                      */
+/* ConnectionBadge - minimal                                          */
 /* ------------------------------------------------------------------ */
 
 function ConnectionBadge({ state }: { state: string }) {
   if (state === "open") {
     return (
-      <span className="flex items-center gap-1.5 text-[0.7rem] text-success opacity-70">
+      <span className="flex items-center gap-1.5 text-xs text-green-400">
         <Wifi className="h-3 w-3" />
-        <span className="uppercase tracking-widest">Connected</span>
+        <span>已连接</span>
       </span>
     );
   }
   if (state === "connecting") {
     return (
-      <span className="flex items-center gap-1.5 text-[0.7rem] opacity-50">
+      <span className="flex items-center gap-1.5 text-xs text-white/40">
         <Loader2 className="h-3 w-3 animate-spin" />
-        <span className="uppercase tracking-widest">Connecting</span>
+        <span>连接中</span>
       </span>
     );
   }
   return (
-    <span className="flex items-center gap-1.5 text-[0.7rem] text-error opacity-70">
+    <span className="flex items-center gap-1.5 text-xs text-red-400">
       <WifiOff className="h-3 w-3" />
-      <span className="uppercase tracking-widest">{state}</span>
+      <span>{state}</span>
     </span>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* EmptyState                                                           */
+/* EmptyState                                                         */
 /* ------------------------------------------------------------------ */
 
 function EmptyState({
@@ -381,20 +350,16 @@ function EmptyState({
   connectionState: string;
 }) {
   return (
-    <div className="flex h-full min-h-[40vh] flex-col items-center justify-center gap-3 opacity-40">
+    <div className="flex h-full min-h-[40vh] flex-col items-center justify-center gap-3 text-white/40">
       {isConnected ? (
         <>
-          <Bot className="h-10 w-10" />
-          <p className="font-mono text-sm tracking-widest uppercase">
-            Start a conversation
-          </p>
+          <Bot className="h-8 w-8" />
+          <p className="text-sm">开始对话</p>
         </>
       ) : (
         <>
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="font-mono text-xs tracking-widest uppercase">
-            {connectionState}…
-          </p>
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <p className="text-xs">{connectionState}...</p>
         </>
       )}
     </div>

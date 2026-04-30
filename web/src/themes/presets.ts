@@ -192,8 +192,41 @@ export const roseTheme: DashboardTheme = {
   },
 };
 
+export const businessTheme: DashboardTheme = {
+  name: "business",
+  label: "商务",
+  description: "商业简洁风格 — 低饱和度、高对比度、专业感",
+  palette: {
+    background: { hex: "#0f0f0f", alpha: 1 },
+    midground: { hex: "#e5e5e5", alpha: 1 },
+    foreground: { hex: "#ffffff", alpha: 0 },
+    warmGlow: "rgba(255, 255, 255, 0.05)",
+    noiseOpacity: 0.3,
+  },
+  typography: {
+    fontSans: `"Inter", ${SYSTEM_SANS}`,
+    fontMono: `"JetBrains Mono", ${SYSTEM_MONO}`,
+    fontUrl:
+      "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap",
+    baseSize: "14px",
+    lineHeight: "1.6",
+    letterSpacing: "-0.01em",
+  },
+  layout: {
+    radius: "0.375rem",
+    density: "compact",
+  },
+  colorOverrides: {
+    primary: "#3b82f6",
+    success: "#22c55e",
+    warning: "#f59e0b",
+    destructive: "#ef4444",
+  },
+};
+
 export const BUILTIN_THEMES: Record<string, DashboardTheme> = {
   default: defaultTheme,
+  business: businessTheme,
   midnight: midnightTheme,
   ember: emberTheme,
   mono: monoTheme,

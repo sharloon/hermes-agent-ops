@@ -159,6 +159,35 @@ code { font-size: 0.875rem; }
 }
 
 
+/* ------------------------------------------------------------------ */
+/* Minimal scrollbar - business style                                  */
+/* ------------------------------------------------------------------ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+
 /* Toast animations used by `components/Toast.tsx`. */
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(16px); }

@@ -64,7 +64,7 @@ All fields are optional. Missing values inherit from the ``default`` skin.
 
     # Branding: text strings used throughout the CLI
     branding:
-      agent_name: "Hermes Agent"          # Banner title, status display
+      agent_name: "运维通"          # Banner title, status display
       welcome: "Welcome message"          # Shown at CLI startup
       goodbye: "Goodbye! ⚕"              # Shown on exit
       response_label: " ⚕ Hermes "       # Response box header label
@@ -89,7 +89,7 @@ USAGE
 
     skin = get_active_skin()
     print(skin.colors["banner_title"])    # "#FFD700"
-    print(skin.get_branding("agent_name"))  # "Hermes Agent"
+    print(skin.get_branding("agent_name"))  # "运维通"
 
     set_active_skin("ares")               # Switch to built-in ares skin
     set_active_skin("mytheme")            # Switch to user skin from ~/.hermes/skins/
@@ -186,12 +186,12 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
             # Empty = use hardcoded defaults in display.py
         },
         "branding": {
-            "agent_name": "Hermes Agent",
-            "welcome": "Welcome to Hermes Agent! Type your message or /help for commands.",
-            "goodbye": "Goodbye! ⚕",
-            "response_label": " ⚕ Hermes ",
+            "agent_name": "运维通",
+            "welcome": "欢迎使用运维通！输入消息或 /help 查看命令。",
+            "goodbye": "再见！",
+            "response_label": " 运维通 ",
             "prompt_symbol": "❯",
-            "help_header": "(^_^)? Available Commands",
+            "help_header": "(^_^)? 可用命令",
         },
         "tool_prefix": "┊",
     },
@@ -297,7 +297,7 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Hermes Agent",
+            "agent_name": "运维通",
             "welcome": "Welcome to Hermes Agent! Type your message or /help for commands.",
             "goodbye": "Goodbye! ⚕",
             "response_label": " ⚕ Hermes ",
@@ -336,7 +336,7 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Hermes Agent",
+            "agent_name": "运维通",
             "welcome": "Welcome to Hermes Agent! Type your message or /help for commands.",
             "goodbye": "Goodbye! ⚕",
             "response_label": " ⚕ Hermes ",
@@ -373,7 +373,7 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Hermes Agent",
+            "agent_name": "运维通",
             "welcome": "Welcome to Hermes Agent! Type your message or /help for commands.",
             "goodbye": "Goodbye! ⚕",
             "response_label": " ⚕ Hermes ",
@@ -410,7 +410,7 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Hermes Agent",
+            "agent_name": "运维通",
             "welcome": "Welcome to Hermes Agent! Type your message or /help for commands.",
             "goodbye": "Goodbye! \u2695",
             "response_label": " \u2695 Hermes ",

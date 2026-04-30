@@ -26,6 +26,7 @@ export type SessionInfo = {
 
 export type UseChatOptions = {
   autoResume?: boolean;  // 自动恢复最近对话
+  resumeSessionId?: string;  // 恢复指定会话ID
 };
 
 let _msgCounter = 0;
@@ -75,7 +76,7 @@ function historyToMessages(history: Array<{role: string; text?: string; name?: s
 }
 
 export function useChat(options: UseChatOptions = {}) {
-  const { autoResume = true } = options;
+  const { autoResume = true, resumeSessionId } = options;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -92,7 +93,10 @@ export function useChat(options: UseChatOptions = {}) {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (resume?: boolean) => {
+    // resume param overrides the autoResume option
+    const shouldResume = resume !== undefined ? resume : autoResume;
+
     gwRef.current?.close();
 
     const gw = new GatewayClient();
@@ -218,8 +222,27 @@ export function useChat(options: UseChatOptions = {}) {
         ),
       ]);
 
-      // Try to resume recent session if autoResume is enabled
-      if (autoResume) {
+      // If explicitly asked to NOT resume (resume=false from newSession), create new session
+      if (resume === false) {
+        const result = await gw.request<{ session_id: string }>("session.create", {});
+        setSessionId(result.session_id);
+      }
+      // Resume specific session if resumeSessionId is provided
+      else if (resumeSessionId) {
+        try {
+          const resumed = await gw.request<{ session_id: string; messages: Array<{role: string; text?: string; name?: string; context?: string}> }>(
+            "session.resume",
+            { session_id: resumeSessionId }
+          );
+          setSessionId(resumed.session_id);
+          setMessages(historyToMessages(resumed.messages || []));
+        } catch {
+          // Resume failed, create new session
+          const result = await gw.request<{ session_id: string }>("session.create", {});
+          setSessionId(result.session_id);
+        }
+      } else if (shouldResume) {
+        // Try to resume recent session if shouldResume is enabled
         try {
           const recent = await gw.request<{ session_id: string | null; title?: string }>("session.most_recent", {});
           if (recent.session_id) {
@@ -229,7 +252,6 @@ export function useChat(options: UseChatOptions = {}) {
             );
             setSessionId(resumed.session_id);
             setMessages(historyToMessages(resumed.messages || []));
-            // Don't create a new session, use the resumed one
           } else {
             // No recent session, create new
             const result = await gw.request<{ session_id: string }>("session.create", {});
@@ -249,7 +271,7 @@ export function useChat(options: UseChatOptions = {}) {
     } finally {
       unsubClose();
     }
-  }, [autoResume]);
+  }, [autoResume, resumeSessionId]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -280,12 +302,26 @@ export function useChat(options: UseChatOptions = {}) {
     }
   }, []);
 
-  const newSession = useCallback(() => {
-    connect();
-  }, [connect]);
+  // Create a new empty session (no history resume)
+  const newSession = useCallback(async () => {
+    const gw = gwRef.current;
+    if (!gw || connectionState !== "open") {
+      // Need to reconnect first
+      await connect(false);  // connect without auto-resume
+      return;
+    }
+    // Already connected, just create a new session
+    setMessages([]);
+    try {
+      const result = await gw.request<{ session_id: string }>("session.create", {});
+      setSessionId(result.session_id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to create session");
+    }
+  }, [connectionState, connect]);
 
   useEffect(() => {
-    connect();
+    connect();  // connect uses resumeSessionId from options
     return () => {
       gwRef.current?.close();
     };

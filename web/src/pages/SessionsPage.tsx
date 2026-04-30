@@ -23,6 +23,7 @@ import {
   Hash,
   X,
   Play,
+  Square,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import type {
@@ -41,12 +42,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { useConfirmDelete } from "@/hooks/useConfirmDelete";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useSystemActions } from "@/contexts/useSystemActions";
 import { useToast } from "@/hooks/useToast";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
-import { isDashboardEmbeddedChatEnabled } from "@/lib/dashboard-flags";
 
 const SOURCE_CONFIG: Record<string, { icon: typeof Terminal; color: string }> =
   {
@@ -260,6 +261,8 @@ function SessionRow({
   onToggle,
   onDelete,
   resumeInChatEnabled,
+  selected,
+  onSelect,
 }: {
   session: SessionInfo;
   snippet?: string;
@@ -268,6 +271,8 @@ function SessionRow({
   onToggle: () => void;
   onDelete: () => void;
   resumeInChatEnabled: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
 }) {
   const [messages, setMessages] = useState<SessionMessage[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -297,7 +302,9 @@ function SessionRow({
       className={`border overflow-hidden transition-colors ${
         session.is_active
           ? "border-success/30 bg-success/[0.03]"
-          : "border-border"
+          : selected
+            ? "border-primary/30 bg-primary/[0.03]"
+            : "border-border"
       }`}
     >
       <div
@@ -305,6 +312,14 @@ function SessionRow({
         onClick={onToggle}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
+          {onSelect && (
+            <Checkbox
+              checked={selected}
+              onCheckedChange={() => onSelect()}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              className="shrink-0"
+            />
+          )}
           <div className={`shrink-0 ${sourceInfo.color}`}>
             <SourceIcon className="h-4 w-4" />
           </div>
@@ -362,7 +377,7 @@ function SessionRow({
               title={t.sessions.resumeInChat}
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/chat?resume=${encodeURIComponent(session.id)}`);
+                navigate(`/webchat?resume=${encodeURIComponent(session.id)}`);
               }}
             >
               <Play />
@@ -423,11 +438,32 @@ export default function SessionsPage() {
   const logScrollRef = useRef<HTMLPreElement | null>(null);
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [overviewSessions, setOverviewSessions] = useState<SessionInfo[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteAllLoading, setDeleteAllLoading] = useState(false);
   const { toast, showToast } = useToast();
   const { t } = useI18n();
   const { setAfterTitle, setEnd } = usePageHeader();
   const { activeAction, actionStatus, dismissLog } = useSystemActions();
-  const resumeInChatEnabled = isDashboardEmbeddedChatEnabled();
+  const navigate = useNavigate();
+  const resumeInChatEnabled = true;  // WebChat is always available
+
+  // Selection handlers (toggle only - doesn't depend on filtered)
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const deselectAll = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
 
   useLayoutEffect(() => {
     if (loading) {
@@ -583,6 +619,54 @@ export default function SessionsPage() {
     ? sessions.filter((s) => snippetMap.has(s.id))
     : sessions;
 
+  // Selection state (depends on filtered)
+  const selectAll = useCallback(() => {
+    setSelectedIds(new Set(filtered.map((s) => s.id)));
+  }, [filtered]);
+
+  const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;
+  const someSelected = selectedIds.size > 0;
+
+  // Batch delete selected sessions
+  const deleteSelected = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    setDeleteAllLoading(true);
+    try {
+      for (const id of selectedIds) {
+        await api.deleteSession(id);
+      }
+      setSessions((prev) => prev.filter((s) => !selectedIds.has(s.id)));
+      setTotal((prev) => prev - selectedIds.size);
+      setSelectedIds(new Set());
+      showToast(`已删除 ${selectedIds.size} 个会话`, "success");
+    } catch {
+      showToast("批量删除失败", "error");
+    } finally {
+      setDeleteAllLoading(false);
+      setDeleteAllOpen(false);
+    }
+  }, [selectedIds, showToast]);
+
+  // Delete ALL sessions (not just selected)
+  const deleteAllSessions = useCallback(async () => {
+    setDeleteAllLoading(true);
+    try {
+      const resp = await api.getSessions(1000, 0);
+      for (const s of resp.sessions) {
+        await api.deleteSession(s.id);
+      }
+      setSessions([]);
+      setTotal(0);
+      setSelectedIds(new Set());
+      showToast(`已删除全部 ${resp.sessions.length} 个会话`, "success");
+    } catch {
+      showToast("删除全部会话失败", "error");
+    } finally {
+      setDeleteAllLoading(false);
+      setDeleteAllOpen(false);
+    }
+  }, [showToast]);
+
   const platformEntries = status
     ? Object.entries(status.gateway_platforms ?? {})
     : [];
@@ -637,6 +721,20 @@ export default function SessionsPage() {
             : t.sessions.confirmDeleteMessage
         }
         loading={sessionDelete.isDeleting}
+      />
+
+      {/* Batch delete dialog */}
+      <DeleteConfirmDialog
+        open={deleteAllOpen}
+        onCancel={() => setDeleteAllOpen(false)}
+        onConfirm={selectedIds.size > 0 ? deleteSelected : deleteAllSessions}
+        title={selectedIds.size > 0 ? "批量删除确认" : "删除全部会话"}
+        description={
+          selectedIds.size > 0
+            ? `确定删除选中的 ${selectedIds.size} 个会话？此操作不可撤销。`
+            : "确定删除全部会话记录？此操作不可撤销。"
+        }
+        loading={deleteAllLoading}
       />
 
       {alerts.length > 0 && (
@@ -766,13 +864,31 @@ export default function SessionsPage() {
                   )}
                 </div>
 
-                <Badge
-                  tone="outline"
-                  className="text-[10px] shrink-0 self-start sm:self-center"
-                >
-                  <Database className="mr-1 h-3 w-3" />
-                  {s.source ?? "local"}
-                </Badge>
+                <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                  <Badge tone="outline" className="text-[10px]">
+                    <Database className="mr-1 h-3 w-3" />
+                    {s.source ?? "local"}
+                  </Badge>
+                  <Button
+                    ghost
+                    size="icon"
+                    className="text-muted-foreground hover:text-success"
+                    aria-label={t.sessions.resumeInChat}
+                    title={t.sessions.resumeInChat}
+                    onClick={() => navigate(`/webchat?resume=${encodeURIComponent(s.id)}`)}
+                  >
+                    <Play className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    ghost
+                    destructive
+                    size="icon"
+                    aria-label={t.sessions.deleteSession}
+                    onClick={() => sessionDelete.requestDelete(s.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </CardContent>
@@ -793,6 +909,51 @@ export default function SessionsPage() {
         </div>
       ) : (
         <>
+          {/* Batch action toolbar */}
+          <div className="flex items-center justify-between gap-2 py-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={(v: boolean) => {
+                  if (v) selectAll();
+                  else deselectAll();
+                }}
+              />
+              <span className="text-xs text-muted-foreground">
+                {allSelected
+                  ? `已全选 (${selectedIds.size})`
+                  : someSelected
+                    ? `已选 ${selectedIds.size} 个`
+                    : "全选"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              {someSelected && (
+                <Button
+                  outlined
+                  size="xs"
+                  destructive
+                  onClick={() => setDeleteAllOpen(true)}
+                  className="text-xs"
+                >
+                  <Trash2 className="mr-1 h-3 w-3" />
+                  删除选中
+                </Button>
+              )}
+              <Button
+                outlined
+                size="xs"
+                destructive
+                onClick={() => setDeleteAllOpen(true)}
+                disabled={total === 0}
+                className="text-xs"
+              >
+                <Square className="mr-1 h-3 w-3" />
+                删除全部
+              </Button>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-1.5">
             {filtered.map((s) => (
               <SessionRow
@@ -806,6 +967,8 @@ export default function SessionsPage() {
                 }
                 onDelete={() => sessionDelete.requestDelete(s.id)}
                 resumeInChatEnabled={resumeInChatEnabled}
+                selected={selectedIds.has(s.id)}
+                onSelect={() => toggleSelect(s.id)}
               />
             ))}
           </div>

@@ -18,10 +18,15 @@ import json
 import logging
 import random
 import re
-import sqlite3
 import threading
 import time
 from pathlib import Path
+
+# Prefer pysqlite3 (bundled SQLite with full FTS5 trigram support) over system sqlite3
+try:
+    from pysqlite3 import dbapi2 as sqlite3
+except ImportError:
+    import sqlite3
 
 from agent.memory_manager import sanitize_context
 from hermes_constants import get_hermes_home
@@ -431,11 +436,20 @@ class SessionDB:
                 except sqlite3.OperationalError:
                     _fts_trigram_exists = False
                 if not _fts_trigram_exists:
-                    cursor.executescript(FTS_TRIGRAM_SQL)
-                    cursor.execute(
-                        "INSERT INTO messages_fts_trigram(rowid, content) "
-                        "SELECT id, content FROM messages WHERE content IS NOT NULL"
-                    )
+                    try:
+                        cursor.executescript(FTS_TRIGRAM_SQL)
+                        cursor.execute(
+                            "INSERT INTO messages_fts_trigram(rowid, content) "
+                            "SELECT id, content FROM messages WHERE content IS NOT NULL"
+                        )
+                    except sqlite3.OperationalError as e:
+                        if "no such tokenizer" in str(e):
+                            logger.warning(
+                                "SQLite trigram tokenizer not available - substring search disabled. "
+                                "This is common on systems where SQLite was compiled without FTS5 trigram support."
+                            )
+                        else:
+                            raise
             if current_version < 11:
                 # v11: re-index FTS5 tables to cover tool_name + tool_calls and
                 # switch from external-content to inline mode. Existing DBs have
@@ -502,11 +516,21 @@ class SessionDB:
         except sqlite3.OperationalError:
             cursor.executescript(FTS_SQL)
 
-        # Trigram FTS5 for CJK/substring search
+        # Trigram FTS5 for CJK/substring search (optional - may not be available on all SQLite builds)
         try:
             cursor.execute("SELECT * FROM messages_fts_trigram LIMIT 0")
         except sqlite3.OperationalError:
-            cursor.executescript(FTS_TRIGRAM_SQL)
+            # Table doesn't exist - try to create it, but gracefully handle missing tokenizer
+            try:
+                cursor.executescript(FTS_TRIGRAM_SQL)
+            except sqlite3.OperationalError as e:
+                if "no such tokenizer" in str(e):
+                    logger.warning(
+                        "SQLite trigram tokenizer not available - substring search disabled. "
+                        "This is common on systems where SQLite was compiled without FTS5 trigram support."
+                    )
+                else:
+                    raise
 
         self._conn.commit()
 

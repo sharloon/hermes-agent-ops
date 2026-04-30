@@ -5,6 +5,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Bot,
   ChevronDown,
@@ -24,6 +25,9 @@ import { Markdown } from "@/components/Markdown";
 import { useChat, type ChatMessage, type ToolCallItem } from "@/hooks/useChat";
 
 export default function WebChatPage() {
+  const [searchParams] = useSearchParams();
+  const resumeSessionId = searchParams.get("resume") ?? undefined;
+
   const {
     messages,
     connectionState,
@@ -34,7 +38,7 @@ export default function WebChatPage() {
     sendMessage,
     interrupt,
     newSession,
-  } = useChat();
+  } = useChat({ resumeSessionId });
 
   const [draft, setDraft] = useState("");
   const [showScrollBtn, setShowScrollBtn] = useState(false);

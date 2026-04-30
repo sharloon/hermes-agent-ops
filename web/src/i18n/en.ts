@@ -74,7 +74,7 @@ export const en: Translations = {
       documentation: "Documentation",
       keys: "Keys",
       logs: "Logs",
-      sessions: "Sessions",
+      sessions: "Sessions History",
       skills: "Skills",
     },
     modelToolsSheetSubtitle: "& tools",

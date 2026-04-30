@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Read(//c/Users/sharloon/.hermes/**)",
+      "Read(///wsl.localhost/Ubuntu-24.04/home/sharloon/.hermes/**)",
+      "Bash(./hermes --help)",
+      "Read(///wsl.localhost/Ubuntu-24.04/mnt/**)",
+      "Bash(wslpath \"\\\\\\\\\\\\\\\\wsl.localhost\\\\\\\\Ubuntu-24.04\\\\\\\\home\\\\\\\\sharloon\\\\\\\\hermes-agent-new\\\\\\\\hermes-agent\")",
+      "Read(///wsl.localhost/Ubuntu-24.04/home/sharloon/hermes-agent-new/hermes-agent/**)",
+      "Read(//mnt/Ubuntu-24.04/home/sharloon/hermes-agent-new/hermes-agent/**)",
+      "Bash(xargs grep *)",
+      "Bash(grep -E \"\\\\.py$\")",
+      "Bash(npm run *)",
+      "Bash(wsl *)"
+    ]
+  }
+}

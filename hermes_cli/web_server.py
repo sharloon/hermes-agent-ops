@@ -2534,6 +2534,36 @@ async def gateway_ws(ws: WebSocket) -> None:
 
 
 # ---------------------------------------------------------------------------
+# /api/chat-ws — JSON-RPC WebSocket for the native Web Chat UI.
+#
+# Same protocol as /api/ws but NOT gated by _DASHBOARD_EMBEDDED_CHAT_ENABLED,
+# so it works with plain `hermes dashboard` (no --tui flag required).
+# ---------------------------------------------------------------------------
+
+
+@app.websocket("/api/chat-ws")
+async def chat_ws(ws: WebSocket) -> None:
+    token = ws.query_params.get("token", "")
+    if not hmac.compare_digest(token.encode(), _SESSION_TOKEN.encode()):
+        # Accept first so the browser sees a visible close code, then reject.
+        # Calling close() before accept() is silently swallowed by Starlette.
+        await ws.accept()
+        import json as _json
+        await ws.send_text(_json.dumps({
+            "jsonrpc": "2.0", "method": "event",
+            "params": {"type": "error", "payload": {
+                "message": "Unauthorized — hard-refresh the page (Ctrl+Shift+R) to get a fresh token"
+            }},
+        }))
+        await ws.close(code=4401)
+        return
+
+    from tui_gateway.ws import handle_ws as _handle_ws
+    # handle_ws calls ws.accept() internally
+    await _handle_ws(ws)
+
+
+# ---------------------------------------------------------------------------
 # /api/pub + /api/events — chat-tab event broadcast.
 #
 # The PTY-side ``tui_gateway.entry`` opens /api/pub at startup (driven by

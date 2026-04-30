@@ -103,7 +103,7 @@ export class GatewayClient {
     return this.on(ANY as GatewayEventName, cb);
   }
 
-  async connect(token?: string): Promise<void> {
+  async connect(token?: string, path = "/api/ws"): Promise<void> {
     if (this._state === "open" || this._state === "connecting") return;
     this.setState("connecting");
 
@@ -117,7 +117,7 @@ export class GatewayClient {
 
     const scheme = location.protocol === "https:" ? "wss:" : "ws:";
     const ws = new WebSocket(
-      `${scheme}//${location.host}/api/ws?token=${encodeURIComponent(resolved)}`,
+      `${scheme}//${location.host}${path}?token=${encodeURIComponent(resolved)}`,
     );
     this.ws = ws;
 

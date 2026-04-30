@@ -73,7 +73,7 @@ export const zh: Translations = {
       documentation: "文档",
       keys: "密钥",
       logs: "日志",
-      sessions: "会话",
+      sessions: "会话记录",
       skills: "技能",
     },
     modelToolsSheetSubtitle: "与工具",
